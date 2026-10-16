@@ -1,0 +1,138 @@
+name: Publish to PyPI via Trusted Publishing (OIDC)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish to PyPI"
+        required: true
+        default: "v0.2.0"
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: pypi-publish
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    name: Fetch, verify and stage release artifacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Validate release tag format
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid release tag format: '$TAG'. Expected format like v0.2.0"
+            exit 1
+          fi
+          echo "Validated release tag format: $TAG"
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+
+      - name: Install verification tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install twine
+
+      - name: Download release assets from GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          mkdir -p dist
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dist
+
+      - name: Verify SHA256 checksums
+        run: |
+          cd dist
+          sha256sum -c SHA256SUMS
+
+      - name: Record SHA256 checksums to Step Summary
+        run: |
+          echo "### Release Artifact Checksums" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          (cd dist && sha256sum *.whl *.tar.gz) >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assert package naming and version alignment
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          VER="${TAG#v}"
+          EXPECTED_WHL="xmemo_agent_framework-${VER}-py3-none-any.whl"
+          EXPECTED_SDIST="xmemo_agent_framework-${VER}.tar.gz"
+
+          if [ ! -f "dist/${EXPECTED_WHL}" ]; then
+            echo "::error::Missing expected wheel: dist/${EXPECTED_WHL}"
+            exit 1
+          fi
+
+          if [ ! -f "dist/${EXPECTED_SDIST}" ]; then
+            echo "::error::Missing expected sdist: dist/${EXPECTED_SDIST}"
+            exit 1
+          fi
+
+          echo "Verified artifact filenames match version ${VER}:"
+          echo "  - dist/${EXPECTED_WHL}"
+          echo "  - dist/${EXPECTED_SDIST}"
+
+      - name: Strict twine validation
+        run: |
+          twine check --strict dist/*.whl dist/*.tar.gz
+
+      - name: Clean venv install and import smoke test
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          VER="${TAG#v}"
+          WHL="dist/xmemo_agent_framework-${VER}-py3-none-any.whl"
+
+          python -m venv test-venv
+          ./test-venv/bin/python -m pip install --upgrade pip
+          ./test-venv/bin/python -m pip install "${WHL}[maf]"
+          ./test-venv/bin/python -c '
+          import xmemo_agent_framework
+          from xmemo_agent_framework.maf import XMemoContextProvider
+          print("Smoke test passed: xmemo_agent_framework version", xmemo_agent_framework.__version__)
+          '
+
+      - name: Stage distribution files for PyPI upload
+        run: |
+          mkdir -p upload-dist
+          cp dist/*.whl dist/*.tar.gz upload-dist/
+
+      - name: Upload artifact for publish job
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pypi-dist
+          path: upload-dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish package to PyPI via OIDC
+    needs: fetch
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/xmemo-agent-framework
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download staged distributions
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pypi-dist
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
