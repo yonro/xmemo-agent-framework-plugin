@@ -221,7 +221,7 @@ async def test_malformed_server_response_id_is_not_retained():
 
 def test_package_version_and_exports():
     import xmemo_agent_framework
-    assert xmemo_agent_framework.__version__ == "0.2.0"
+    assert xmemo_agent_framework.__version__ == "0.2.1"
     assert "Connection" in xmemo_agent_framework.__all__
     assert "Provider" in xmemo_agent_framework.__all__
     assert "__version__" in xmemo_agent_framework.__all__

@@ -4,11 +4,31 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xmemo-agent-framework"
-version = "0.2.0"
-description = "Opt-in XMemo context and capture for Microsoft Agent Framework"
+version = "0.2.1"
+description = "XMemo for Microsoft Agent Framework: opt-in long-term memory context and capture (independent community integration)"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Yonro", email = "support@xmemo.dev" }]
+keywords = ["xmemo", "agent-framework", "microsoft-agent-framework", "memory", "context", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = ["httpx>=0.28,<0.29"]
+
+[project.urls]
+Homepage = "https://xmemo.dev"
+Repository = "https://github.com/yonro/xmemo-agent-framework-plugin"
+Issues = "https://github.com/yonro/xmemo-agent-framework-plugin/issues"
+Changelog = "https://github.com/yonro/xmemo-agent-framework-plugin/blob/main/CHANGELOG.md"
+PyPI = "https://pypi.org/project/xmemo-agent-framework/"
 
 [project.optional-dependencies]
 maf = ["agent-framework-core==1.21.0"]

@@ -1,23 +1,28 @@
-# XMemo Agent Framework Plugin
+# XMemo for Microsoft Agent Framework
 
-The XMemo context provider for Microsoft Agent Framework, version 0.2.0. The
+The XMemo context provider for Microsoft Agent Framework, version 0.2.1. The
 package provides bounded, provenance-bearing context retrieval and an explicit,
 opt-in capture hook. It does not publish or deploy an XMemo server. This is an
 independent community integration, not an official Microsoft product or
 distribution.
 
-## Quickstart
+- **Homepage & Documentation**: <https://xmemo.dev>
+- **PyPI Package**: <https://pypi.org/project/xmemo-agent-framework/>
+- **GitHub Repository**: <https://github.com/yonro/xmemo-agent-framework-plugin>
 
-This checkout is version 0.2.0. Install it with the pinned Microsoft Agent
-Framework extra:
+## Installation
+
+Install `xmemo-agent-framework` from PyPI with the Microsoft Agent Framework extra:
 
 ```sh
-python -m venv .venv
-.venv/bin/python -m pip install -e ".[maf]"
+pip install "xmemo-agent-framework[maf]"
 ```
 
-After publication, the equivalent consumer install is
-`xmemo-agent-framework[maf]==0.2.0`.
+The `[maf]` extra pins `agent-framework-core==1.21.0`. Without that extra, the
+core package remains importable, but importing `xmemo_agent_framework.maf`
+raises a clear `ImportError` until the host framework dependency is installed.
+
+## Quickstart
 
 Set the XMemo origin and API key in the process environment. `XMEMO_URL` must be
 an HTTPS origin, and `XMEMO_API_KEY` is sent only as an Authorization header.
@@ -56,17 +61,11 @@ immutable provenance and an adapter receipt. Retrieved text is untrusted saved
 context, not an instruction, and server authorization owns the effective owner
 and tenant.
 
-The `maf` extra pins `agent-framework-core==1.21.0`. Without that extra, the
-core package remains importable, but importing `xmemo_agent_framework.maf`
-raises a clear `ImportError` until the host framework dependency is installed.
-
 ## Server requirements
 
-Read routes require the corresponding XMemo REST contract. `REMEMBER`, `STATE`,
-and `EVENT` capture and their audited write responses require the first XMemo
-release after `v0.4.435` (the 2026-10 audit fixes) when that release is
-available; this package does not assume a release number that has not been
-published.
+Read routes require the corresponding XMemo REST contract; `REMEMBER`, `STATE`,
+and `EVENT` capture with audited write responses require XMemo server `v0.4.436`
+or later, which the hosted service at https://xmemo.dev already runs.
 
 ## Capture (opt-in)
 
